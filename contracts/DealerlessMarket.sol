@@ -31,6 +31,10 @@ contract DealerlessMarket is ERCXFull{
         _;
     }
     
+    function owner() public view returns(address){
+        return foundation_address;
+    }
+    
     function createAuction(uint token_id) public onlyOwner {
         auctions[token_id] = new DealerlessAuction(foundation_address);
     }
@@ -116,10 +120,10 @@ contract DealerlessRental{
     }
     
     function approveTenantRight(address tenant, uint256 itemId) public onlyOwner(itemId) returns(bool, bool, bytes memory, bytes memory){
-        (bool status, bytes memory data) = address(dealerlessMarketDeployer).delegatecall(abi.encodeWithSignature("delegatecallex(address, uint256)", tenant, itemId));
+        (bool status, bytes memory data) = address(dealerlessMarketDeployer).delegatecall(abi.encodeWithSignature("delegatecallex(address,uint256)", tenant, itemId));
           //  abi.encodePacked(bytes4(keccak256("delegatecallex(uint160, uint)")), tenant, itemId));
 
-        (bool status1, bytes memory data1) = address(dealerlessMarketDeployer).delegatecall(abi.encodePacked(bytes4(keccak256("approveTenantRight(address, uint256)")), tenant, itemId));
+        (bool status1, bytes memory data1) = address(dealerlessMarketDeployer).delegatecall(abi.encodeWithSignature("approveTenantRight(address,uint256)", tenant, itemId));
         /*
         //dealerlessMarketDeployer.approveTenantRight(tenant, itemId);
         if (status) {
@@ -130,7 +134,7 @@ contract DealerlessRental{
     }
     
     function setTenantRight(uint itemId) public returns(bool){
-        (bool status,) = address(dealerlessMarketDeployer).delegatecall(abi.encodePacked(bytes4(keccak256("setTenantRight(uint256)")), itemId));
+        (bool status,) = address(dealerlessMarketDeployer).delegatecall(abi.encodeWithSignature("setTenantRight(uint256)", itemId));
         Property rental = rentalProperty[itemId];
         rental.confirmAgreement();
         return status;
