@@ -2,6 +2,10 @@
   "name": "dealerlessdeal",
   "version": "0.1.0",
   "description": "DeFi Real Estate App",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kohshiba/ERC-X.git"
+  },
   "devDependencies": {
     "cssnano": "^4.1.10",
     "babel-polyfill": "6.26.0",

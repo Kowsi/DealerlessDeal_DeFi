@@ -1,6 +1,6 @@
 // @TODO: Update this address to match your deployed DealerlessMarket contract!
-const contractAddress = "0x63f1aA9ddd7A66D6C6838c977f9D8daAF298d75C";
-
+const marketContractAddress = "0x6eCB11D6bAC9fe5b44C5CD8334e1D1E896e42113";
+const rentalContractAddress = "0xE3b6c5b85Fbe797756594552bd41e86DCc4d2ff5";
 
 const dApp = {
   ethEnabled: function() {
@@ -19,18 +19,25 @@ const dApp = {
     }
 
     this.accounts = await window.web3.eth.getAccounts();
-    this.contractAddress = contractAddress;
-
-    this.marsJson = await (await fetch("./build/contracts/DealerlessMarket.json")).json();
+    this.marketContractAddress = marketContractAddress;
+    this.propertyJson = await (await fetch("./build/contracts/Property.json")).json();
+    this.marketJson = await (await fetch("./build/contracts/DealerlessMarket.json")).json();
     this.auctionJson = await (await fetch("./build/contracts/DealerlessAuction.json")).json();
-
+    this.rentalsJson = await (await fetch("./build/contracts/DealerlessRental.json")).json();
     this.marsContract = new window.web3.eth.Contract(
-      this.marsJson,
-      this.contractAddress,
+      this.marketJson,
+      this.marketContractAddress,
+      { defaultAccount: this.accounts[0] }
+    );
+    
+    this.rentalContract = new window.web3.eth.Contract(
+      this.rentalsJson,
+      this.rentalContractAddress,
       { defaultAccount: this.accounts[0] }
     );
 
     console.log("Contract object", this.marsContract);
+    console.log("Contract Rental object", this.rentalContract);
     
     this.isAdmin = this.accounts[0] == await this.marsContract.methods.owner().call();
 
@@ -38,17 +45,18 @@ const dApp = {
   collectVars: async function() {
     // get land tokens
     this.tokens = [];
-    this.totalSupply = await this.marsContract.methods.totalSupply().call();
+    this.totalNumberOfItems = await this.marsContract.methods.totalNumberOfItems().call();
 
     // fetch json metadata from IPFS (name, description, image, etc)
+    console.log();
     const fetchMetadata = (reference_uri) => fetch(`https://gateway.pinata.cloud/ipfs/${reference_uri.replace("ipfs://", "")}`, { mode: "cors" }).then((resp) => resp.json());
 
-    for (let i = 1; i <= this.totalSupply; i++) {
+    for (let i = 1; i <= this.totalNumberOfItems; i++) {
       try {
-        const token_uri = await this.marsContract.methods.tokenURI(i).call();
-        console.log('token uri', token_uri)
+        const token_uri = await this.marsContract.methods.itemURI(i).call();
+        console.log('Item uri', token_uri)
         const token_json = await fetchMetadata(token_uri);
-        console.log('token json', token_json)
+        console.log('Item json', token_json)
         this.tokens.push({
           tokenId: i,
           highestBid: Number(await this.marsContract.methods.highestBid(i).call()),
@@ -88,7 +96,8 @@ const dApp = {
         let owner = `Owner: ${token.owner}`;
         console.log(contract_owner)
         if (token.owner == contract_owner){
-            owner += ` <br/><button class="btn waves-effect waves-light" type="submit" name="rent">Rent<i class="material-icons right">send</i></button>`;
+            owner += ` <br/><a class="waves-effect waves-light btn modal-trigger" id="rent-${token.tokenId}" href="#ready-to-rent-modal">Rent<i class="material-icons right">send</i></a>`;
+
         }
         let withdraw = `<a token-id="${token.tokenId}" href="#" onclick="dApp.withdraw(event)">Withdraw</a>`
         let pendingWithdraw = `Balance: ${token.pendingReturn} wei`;
@@ -207,6 +216,9 @@ const dApp = {
     } catch (e) {
       alert("ERROR:", JSON.stringify(e));
     }
+  },
+  readyToRent: async function(){
+    await this.marsContract.methods.readyToRent()
   },
   main: async function() {
     // Initialize web3
